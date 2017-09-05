@@ -66,7 +66,7 @@ class Foundation
         }));
         // Get a sizes attribute value based on a string of Foundation grid classes.
         $twig->addFunction(new Twig_Function('foundation_sizes', function ($classes) use ($foundation) {
-            return $foundation->sizes($classes);
+            return $foundation->parseSizes($classes);
         }));
     }
 
