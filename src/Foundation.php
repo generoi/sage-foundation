@@ -16,12 +16,15 @@ class Foundation
      */
     public function __construct($config)
     {
-        $this->config = $config + [
+        $this->config = array_replace_recursive([
             'color' => [
                 'primary'   => __('Primary', 'sage-foundation'),
                 'secondary' => __('Secondary', 'sage-foundation'),
             ],
-            'palette' => [],
+            'palette' => [
+                'button' => ['primary', 'secondary'],
+                'callout' => ['primary', 'secondary', 'success', 'warning', 'alert'],
+            ],
             'breakpoint' => [
                 'small'   => 0,
                 'medium'  => 640,
@@ -33,7 +36,43 @@ class Foundation
                 'small' => 16,
             ],
             'paragraph_width' => 45,
+        ], $config);
+
+        add_filter('tiny_mce_before_init', [$this, 'tinymceFormats'], 9);
+    }
+
+    /**
+     * Add Foundation formats to TinyMCE.
+     *
+     * @param array $settings
+     * @return array;
+     */
+    public function tinymceFormats($settings)
+    {
+        // Button formats
+        $buttons[] = ['title' => 'Buttons', 'selector' => 'a', 'classes' => 'button'];
+        foreach ($this->palette('button') as $class => $name) {
+            $buttons[] = ['title' => sprintf('%s Color (Button)', $name), 'selector' => 'a.button', 'classes' => $class];
+        }
+        $buttons[] = ['title' => 'Tiny (Button)', 'selector' => 'a.button', 'classes' => 'tiny'];
+        $buttons[] = ['title' => 'Small (Button)', 'selector' => 'a.button', 'classes' => 'small'];
+        $buttons[] = ['title' => 'Large (Button)', 'selector' => 'a.button', 'classes' => 'large'];
+
+        // Callout formats
+        $callouts[] = ['title' => 'Callout box', 'block' => 'div', 'classes' => 'callout', 'wrapper' => true];
+        foreach ($this->palette('callout') as $class => $name) {
+            $callouts[] = ['title' => sprintf('%s (Callout)', $name), 'selector' => 'div.callout', 'classes' => $class];
+        }
+
+        $style_formats = [
+            ['title' => 'Buttons', 'items' => $buttons],
+            ['title' => 'Callout', 'items' => $callouts],
         ];
+
+        $settings['style_formats'] = json_encode($style_formats);
+        $settings['style_formats_merge'] = true;
+
+        return $settings;
     }
 
     /**
