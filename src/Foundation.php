@@ -43,6 +43,50 @@ class Foundation
         add_filter('widget-options-extended/grid', [$this, 'getGridType'], 9);
         add_filter('tailor-foundation/grid', [$this, 'getGridType'], 9);
         add_filter('tiny_mce_before_init', [$this, 'tinymceFormats'], 9);
+        add_filter('sage/timber/class/post_cell', [$this, 'postCellClass'], 9);
+        add_filter('sage/timber/class/post_grid', [$this, 'postGridClass'], 9);
+    }
+
+    /**
+     * Get a CSS class for cells in a grid.
+     *
+     * @param array $classes
+     * @return array
+     */
+    public function postCellClass($classes)
+    {
+        $classes[] = $this->config('grid') === 'xy-grid' ? 'cell' : 'column';
+        return $classes;
+    }
+
+    /**
+     * Set CSS classes for post grid listings.
+     *
+     * @param array $classes
+     * @return string
+     */
+    public function postGridClass($classes)
+    {
+        if ($this->config('grid') === 'xy-grid') {
+            $classes = array_merge($classes, [
+                'grid-x',
+                'grid-margin-x',
+                'grid-margin-y',
+                'align-center',
+                'align-stretch',
+                'small-up-1',
+                'medium-up-2',
+                'large-up-3',
+            ]);
+        } else {
+            $classes[] = 'row';
+        }
+
+        $classes[] = 'small-up-1';
+        $classes[] = 'medium-up-2';
+        $classes[] = 'large-up-3';
+
+        return $classes;
     }
 
     /**
