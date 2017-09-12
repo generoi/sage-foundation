@@ -36,8 +36,12 @@ class Foundation
                 'small' => 16,
             ],
             'paragraph_width' => 45,
+
+            'grid' => 'xy-grid',
         ], $config);
 
+        add_filter('widget-options-extended/grid', [$this, 'getGridType'], 9);
+        add_filter('tailor-foundation/grid', [$this, 'getGridType'], 9);
         add_filter('tiny_mce_before_init', [$this, 'tinymceFormats'], 9);
     }
 
@@ -73,6 +77,11 @@ class Foundation
         $settings['style_formats_merge'] = true;
 
         return $settings;
+    }
+
+    public function getGridType()
+    {
+        return $this->config('grid');
     }
 
     /**
