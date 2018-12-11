@@ -2,43 +2,46 @@
 
 namespace Genero\Sage;
 
-use Timber\Twig_Function;
+use \Timber\Twig_Function;
+use \Genero\Sage\Foundation\ScssFile;
+
+if (file_exists($composer = __DIR__ . '/../vendor/autoload.php')) {
+    require_once $composer;
+}
 
 class Foundation
 {
     /** @var array */
     public $config;
 
+    protected $variables;
+    protected $rootDir;
+
     /**
      * Foundation constructor
      *
      * @param array $config Foundation configurations.
      */
-    public function __construct($config)
+    public function __construct($config, $rootDir = null)
     {
+        $this->rootDir = $rootDir ?: get_theme_file_path();
         $this->config = array_replace_recursive([
-            'color' => [
-                'primary'   => __('Primary', 'sage-foundation'),
-                'secondary' => __('Secondary', 'sage-foundation'),
-            ],
-            'palette' => [
-                'button' => ['primary', 'secondary'],
-                'callout' => ['primary', 'secondary', 'success', 'warning', 'alert'],
-            ],
-            'breakpoint' => [
-                'small'   => 0,
-                'medium'  => 640,
-                'large'   => 1024,
-                'xlarge'  => 1200,
-                'xxlarge' => 1440,
-            ],
-            'fontsize' => [
-                'small' => 16,
-            ],
-            'paragraph_width' => 45,
-
             'grid' => 'xy-grid',
         ], $config);
+
+        if (!empty($this->config['variables_file'])) {
+            // Parse the configured variables scss file.
+            $this->variables = (new ScssFile($this->config['variables_file']))
+                ->setRootDir($this->rootDir)
+                ->parse();
+
+            // Replace variables with values.
+            array_walk_recursive($this->config, function (&$value, $key) {
+                if ($value[0] === '$' && strlen($value) > 1) {
+                    $value = $this->getVariable(ltrim($value, '$'));
+                }
+            });
+        }
 
         add_filter('widget-options-extended/grid', [$this, 'getGridType'], 9);
         add_filter('tailor-foundation/grid', [$this, 'getGridType'], 9);
@@ -99,8 +102,8 @@ class Foundation
     {
         // Button formats
         $buttons[] = ['title' => 'Buttons', 'selector' => 'a', 'classes' => 'button'];
-        foreach ($this->palette('button') as $class => $name) {
-            $buttons[] = ['title' => sprintf('%s Color (Button)', $name), 'selector' => 'a.button', 'classes' => $class];
+        foreach ($this->palette('button') as $class => $info) {
+            $buttons[] = ['title' => sprintf('%s Color (Button)', $info['name']), 'selector' => 'a.button', 'classes' => $class];
         }
         $buttons[] = ['title' => 'Tiny (Button)', 'selector' => 'a.button', 'classes' => 'tiny'];
         $buttons[] = ['title' => 'Small (Button)', 'selector' => 'a.button', 'classes' => 'small'];
@@ -108,8 +111,8 @@ class Foundation
 
         // Callout formats
         $callouts[] = ['title' => 'Callout box', 'block' => 'div', 'classes' => 'callout', 'wrapper' => true];
-        foreach ($this->palette('callout') as $class => $name) {
-            $callouts[] = ['title' => sprintf('%s (Callout)', $name), 'selector' => 'div.callout', 'classes' => $class];
+        foreach ($this->palette('callout') as $class => $info) {
+            $callouts[] = ['title' => sprintf('%s (Callout)', $info['name']), 'selector' => 'div.callout', 'classes' => $class];
         }
 
         $style_formats = [
@@ -144,6 +147,18 @@ class Foundation
     }
 
     /**
+     * Retrieve a value from the defined variable scss file.
+     */
+    public function getVariable($key)
+    {
+        if (!$this->variables) {
+            return null;
+        }
+
+        return $this->variables->get($key);
+    }
+
+    /**
      * Register twig functions and filters.
      *
      * @param Twig_Environment $twig.
@@ -168,17 +183,19 @@ class Foundation
      * @param string $type
      * @return array
      */
-    public function palette($type = 'all')
+    public function palette($type = null, $columnKey = null, $indexKey = null)
     {
         $colors = $this->config('color');
-        if ($type === 'all') {
-            return $colors;
+        if ($type && $type !== 'all') {
+            $palette = $this->config('palette');
+            if (isset($palette[$type])) {
+                $colors = array_intersect_key($colors, array_combine($palette[$type], $palette[$type]));
+            }
+        }
+        if ($columnKey) {
+            $colors = array_column($colors, $columnKey, $indexKey);
         }
 
-        $palette = $this->config('palette');
-        if (isset($palette[$type])) {
-            return array_intersect_key($colors, array_combine($palette[$type], $palette[$type]));
-        }
         return $colors;
     }
 
@@ -191,7 +208,15 @@ class Foundation
     public function breakpoint($name = null)
     {
         $breakpoints = $this->config('breakpoint');
-        return isset($name) ? $breakpoints[$name] : $breakpoints;
+        return isset($name) ? (int) $breakpoints[$name] : array_map('intval', $breakpoints);
+    }
+
+    public function fontsizes()
+    {
+        return array_values(array_map(function ($info) {
+            $info['size'] = (int) $info['size'];
+            return $info;
+        }, $this->config('fontsizes')));
     }
 
     /**
@@ -223,7 +248,7 @@ class Foundation
      */
     public function paragraphWidth($breakpoint = 'small')
     {
-        $max_width = ($this->config('paragraph_width') * $this->fontsize($breakpoint));
+        $max_width = ($this->config('paragraph_width') * ((int) $this->fontsize($breakpoint)));
         $breakpoints = $this->breakpoint();
         // Advance until the requested breakpoint
         while (key($breakpoints) !== $breakpoint) {
