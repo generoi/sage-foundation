@@ -238,6 +238,9 @@ class Foundation
                 return $fontsize;
             }
         }
+
+        // If there were only smaller breakpoints defined, return the largest of them.
+        return $fontsize;
     }
 
     /**
