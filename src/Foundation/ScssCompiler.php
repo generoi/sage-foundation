@@ -2,9 +2,8 @@
 
 namespace Genero\Sage\Foundation;
 
-use Leafo\ScssPhp\Compiler;
-use Leafo\ScssPhp\Type;
-use Leafo\ScssPhp\Compiler\Environment;
+use ScssPhp\ScssPhp\Compiler;
+use ScssPhp\ScssPhp\Type;
 
 class ScssCompiler extends Compiler
 {
