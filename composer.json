@@ -23,7 +23,6 @@
   },
   "require": {
     "php": ">=5.6.0",
-    "composer/installers": "~1.0",
     "leafo/scssphp": "^0.7.7",
     "adbario/php-dot-notation": "^2.1"
   },
